@@ -12,38 +12,33 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+# main.py
 @app.get("/")
 async def menu(request: Request):
-    folders = [name for name in os.listdir("./games") if os.path.isdir(os.path.join("./games", name))]
     return templates.TemplateResponse(
         request=request,
-        name='menu.html',
-        context={"folders": folders}
+        name="menu.html"
     )
 
 @app.get("/controller")
 async def controller():
     return HTMLResponse(open("static/controller.html").read())
 
-@app.get("/shutdown")
-async def shutdown():
-    os.kill(os.getpid(), signal.SIGINT)
-
-# Connection manager to store all connected clients
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: list[WebSocket] = []
+        # We now use a dictionary to keep track of who is who
+        self.active_connections: dict[str, WebSocket] = {}
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, player_id: str):
         await websocket.accept()
-        self.active_connections.append(websocket)
+        self.active_connections[player_id] = websocket
 
-    def disconnect(self, websocket: WebSocket):
-        if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
+    def disconnect(self, player_id: str):
+        if player_id in self.active_connections:
+            del self.active_connections[player_id]
 
     async def broadcast(self, message: str):
-        for connection in self.active_connections:
+        for connection in self.active_connections.values():
             try:
                 await connection.send_text(message)
             except:
@@ -53,14 +48,21 @@ manager = ConnectionManager()
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+    # Grab the unique ID from the URL (e.g., /ws?id=12345)
+    player_id = websocket.query_params.get("id", "unknown")
+
+    await manager.connect(websocket, player_id)
+    print(f"Player {player_id} connected")
+
     try:
         while True:
-            data = await websocket.receive_text()
-            print(data)
+            data = await websocket.receive_text()  # This broadcasts the movement data (which includes the ID) to everyone
+
+            print(f"Received from {player_id}: {data}")
+
             await manager.broadcast(data)
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        manager.disconnect(player_id)
 
 def main():
     uvicorn.run(app, host="0.0.0.0", port=8081)
