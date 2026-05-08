@@ -1,10 +1,8 @@
 // controller.js
 
 class Controller {
-  constructor(playerId = 'player1') {
-    if (Controller._instance) {
-      return Controller._instance; // prevent multiple instances
-    }
+  constructor(playerId = localStorage.getItem("playerId")) {
+
 
     this.playerId = playerId;
     this.lastDirection = null;
@@ -13,13 +11,26 @@ class Controller {
     this.inputLog = null;
     this.inputstate = { direction: null };
     this._initSocket();
-
-    Controller._instance = this; // store the instance
   }
 
   _initSocket() {
     const protocol = location.protocol === "https:" ? "wss" : "ws";
-    this.socket = new WebSocket(`${protocol}://${location.host}/ws`);
+
+// Try to load existing UUID
+    let playerId = localStorage.getItem("playerId");
+
+// Create one if missing
+    if (!playerId) {
+      playerId = crypto.randomUUID();
+      localStorage.setItem("playerId", playerId);
+    }
+
+// Send UUID in websocket URL
+    const socket = new WebSocket(
+        `${protocol}://${location.host}/ws?id=${playerId}`
+    );
+
+    console.log("Player ID:", playerId);
     console.log (`${protocol}://${location.host}/ws`)
 
     this.socket.onmessage = (event) => {

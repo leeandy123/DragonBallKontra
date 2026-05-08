@@ -62,7 +62,7 @@ initPointer();
 
 let menuText = Text({ x: 100, y: 50, text: 'Welcome to GameGarage!', font:'24px sans-serif', color:'black' });
 
-let games =  {{ folders | tojson | safe }}
+let games =  {{templates}}
 console.log(games);
 let assets = [];
 for (let game of games) {
