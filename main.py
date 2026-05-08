@@ -48,7 +48,6 @@ manager = ConnectionManager()
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    # Grab the unique ID from the URL (e.g., /ws?id=12345)
     player_id = websocket.query_params.get("id", "unknown")
 
     await manager.connect(websocket, player_id)
@@ -56,13 +55,13 @@ async def websocket_endpoint(websocket: WebSocket):
 
     try:
         while True:
-            data = await websocket.receive_text()  # This broadcasts the movement data (which includes the ID) to everyone
-
+            data = await websocket.receive_text()
             print(f"Received from {player_id}: {data}")
-
             await manager.broadcast(data)
+
     except WebSocketDisconnect:
         manager.disconnect(player_id)
+        print(f"Player {player_id} disconnected")
 
 def main():
     uvicorn.run(app, host="0.0.0.0", port=8081)

@@ -9,7 +9,7 @@ class Controller {
     this.lastButton = null;
     this.socket = null;
     this.inputLog = null;
-    this.inputstate = { direction: null };
+    this.players = {};
     this._initSocket();
   }
 
@@ -26,7 +26,7 @@ class Controller {
     }
 
 // Send UUID in websocket URL
-    const socket = new WebSocket(
+    this.socket = new WebSocket(
         `${protocol}://${location.host}/ws?id=${playerId}`
     );
 
@@ -36,13 +36,33 @@ class Controller {
     this.socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("message received");
-        console.log(JSON.stringify(data));
-        if (data.type === "joystick" && data.playerId === this.playerId) {
-          this.inputstate["direction"] = data.direction;
-          console.log("Joystick + player ID match");
+        console.log("message received:", data);
+
+        if (!data.playerId) return;
+
+        if (!this.players[data.playerId]) {
+          this.players[data.playerId] = {
+            direction: null,
+            button: null
+          };
         }
-        
+
+        if (data.type === "joystick") {
+          this.players[data.playerId].direction = data.direction;
+        }
+
+        if (data.type === "button") {
+          this.players[data.playerId].button = data.button;
+
+          setTimeout(() => {
+            if (this.players[data.playerId]) {
+              this.players[data.playerId].button = null;
+            }
+          }, 150);
+        }
+
+        console.log("players:", this.players);
+
       } catch (err) {
         console.warn("Could not parse server message:", err);
       }
@@ -57,15 +77,14 @@ class Controller {
     return this.lastButton;
   }
 
-  getInputState() {
-    return this.inputstate;
+  getPlayers() {
+    return this.players;
   }
 }
 
-// We may want to refactor to a module in order to import if the games are in there individual js files
+// We may want to refactor to a module in order to import if the games are in their individual js files
 let controllerInstance = new Controller();
-window.getInputState = function () {
-  return controllerInstance.getInputState();
+window.getPlayers = function () {
+  return controllerInstance.getPlayers();
 }
-
 export default Controller;

@@ -154,7 +154,7 @@
         socket.send(JSON.stringify({
           type: 'joystick',
           playerId: playerId,
-          direction: data.direction.x // 'left' or 'right'
+          direction: data.direction.angle // 'left' or 'right'
         }));
       }
 
@@ -167,6 +167,17 @@
         playerId: playerId,
         direction: null
       }));
+    });
+    ["button-a", "button-b", "button-x", "button-y"].forEach((buttonId) => {
+      const button = document.getElementById(buttonId);
+
+      button.addEventListener("click", () => {
+        socket.send(JSON.stringify({
+          type: "button",
+          playerId: playerId,
+          button: button.innerText
+        }));
+      });
     });
   </script>
 
