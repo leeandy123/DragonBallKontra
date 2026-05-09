@@ -37,6 +37,7 @@ class Controller {
       try {
         const data = JSON.parse(event.data);
         console.log("message received:", data);
+        console.log(JSON.stringify(data));
 
         if (!data.playerId) return;
 
@@ -87,4 +88,5 @@ let controllerInstance = new Controller();
 window.getPlayers = function () {
   return controllerInstance.getPlayers();
 }
+
 export default Controller;

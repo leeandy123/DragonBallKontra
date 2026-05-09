@@ -8,6 +8,8 @@ from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
 
+MAX_PLAYERS = 2
+
 # Mount the static folder to serve HTML files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -48,19 +50,41 @@ manager = ConnectionManager()
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    # Grab the unique ID from the URL (e.g., /ws?id=12345)
     player_id = websocket.query_params.get("id", "unknown")
 
+    # Prevent more than 2 players
+    if len(manager.active_connections) >= MAX_PLAYERS:
+
+        await websocket.accept()
+
+        await websocket.send_text(
+            '{"type":"full","message":"Game is full"}'
+        )
+
+        await websocket.close()
+
+        print(f"Rejected {player_id} because lobby is full")
+
+        return
+
     await manager.connect(websocket, player_id)
+
     print(f"Player {player_id} connected")
 
     try:
         while True:
+
             data = await websocket.receive_text()
+
             print(f"Received from {player_id}: {data}")
+
             await manager.broadcast(data)
 
     except WebSocketDisconnect:
+
         manager.disconnect(player_id)
+
         print(f"Player {player_id} disconnected")
 
 def main():
