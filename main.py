@@ -50,7 +50,7 @@ manager = ConnectionManager()
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-
+    # Grab the unique ID from the URL (e.g., /ws?id=12345)
     player_id = websocket.query_params.get("id", "unknown")
 
     # Prevent more than 2 players

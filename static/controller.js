@@ -36,22 +36,33 @@ class Controller {
     this.socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("message received");
+        console.log("message received:", data);
         console.log(JSON.stringify(data));
-        if (data.type === "joystick") {
 
-          // Create player entry if missing
-          if (!this.players[data.playerId]) {
-            this.players[data.playerId] = {
-              direction: null
-            };
-          }
+        if (!data.playerId) return;
 
-          // Update THAT player's state
-          this.players[data.playerId].direction = data.direction;
-
-          console.log(this.players);
+        if (!this.players[data.playerId]) {
+          this.players[data.playerId] = {
+            direction: null,
+            button: null
+          };
         }
+
+        if (data.type === "joystick") {
+          this.players[data.playerId].direction = data.direction;
+        }
+
+        if (data.type === "button") {
+          this.players[data.playerId].button = data.button;
+
+          setTimeout(() => {
+            if (this.players[data.playerId]) {
+              this.players[data.playerId].button = null;
+            }
+          }, 150);
+        }
+
+        console.log("players:", this.players);
 
       } catch (err) {
         console.warn("Could not parse server message:", err);
@@ -72,7 +83,7 @@ class Controller {
   }
 }
 
-// We may want to refactor to a module in order to import if the games are in there individual js files
+// We may want to refactor to a module in order to import if the games are in their individual js files
 let controllerInstance = new Controller();
 window.getPlayers = function () {
   return controllerInstance.getPlayers();
