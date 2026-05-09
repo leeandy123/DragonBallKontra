@@ -107,13 +107,23 @@
   });
 
   joystick.on('move', (evt, data) => {
-    if (data && data.direction) {
-      socket.send(JSON.stringify({ type: 'joystick', playerId, direction: data.direction.angle }));
+    if (data && data.vector && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        type: 'joystick',
+        playerId: playerId,
+        directionX: data.vector.x.toFixed(2), // Keeps it to 2 decimal places
+        directionY: data.vector.y.toFixed(2)
+      }));
     }
   });
 
   joystick.on('end', () => {
-    socket.send(JSON.stringify({ type: 'joystick', playerId, direction: null }));
+    socket.send(JSON.stringify({
+      type: 'joystick',
+      playerId: playerId,
+      directionX: null,
+      directionY: null
+    }));
   });
 
   // Button Logic
