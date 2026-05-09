@@ -92,11 +92,52 @@
 </div>
 
 <script>
+  let mySlot = 0; // 0 means unassigned or spectator
+
   const protocol = location.protocol === "https:" ? "wss" : "ws";
   let playerId = localStorage.getItem("playerId") || crypto.randomUUID();
   localStorage.setItem("playerId", playerId);
 
   const socket = new WebSocket(`${protocol}://${location.host}/ws?id=${playerId}`);
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.type === "assign") {
+      mySlot = data.slot;
+      const display = document.getElementById("input-display");
+
+      if (mySlot === 0) {
+        display.innerText = "Lobby Full: Spectating Mode";
+        display.style.color = "red";
+        document.body.style.opacity = "0.6";
+      } else {
+        display.innerText = "Connected: Player " + mySlot;
+        display.style.color = "green";
+        document.body.style.opacity = "1";
+      }
+    }
+
+    if (data.type === "player_joined") {
+      console.log("Player joined:", data.slot);
+
+      const display = document.getElementById("input-display");
+
+      if (data.slot > 0) {
+        display.innerText = `Player ${data.slot} joined the game`;
+        display.style.color = "yellow";
+
+        setTimeout(() => {
+          if (mySlot > 0) {
+            display.innerText = "Connected: Player " + mySlot;
+            display.style.color = "green";
+          } else {
+            display.innerText = "Lobby Full: Spectating Mode";
+            display.style.color = "red";
+          }
+        }, 2000);
+      }
+    }
+  };
 
   // Joystick Logic
   const joystick = nipplejs.create({
@@ -111,6 +152,7 @@
       socket.send(JSON.stringify({
         type: 'joystick',
         playerId: playerId,
+        slot: mySlot,
         directionX: data.vector.x.toFixed(2), // Keeps it to 2 decimal places
         directionY: data.vector.y.toFixed(2)
       }));
@@ -121,6 +163,7 @@
     socket.send(JSON.stringify({
       type: 'joystick',
       playerId: playerId,
+      slot: mySlot,
       directionX: null,
       directionY: null
     }));
@@ -130,10 +173,22 @@
   ["button-a", "button-b", "button-x", "button-y"].forEach((id) => {
     const btn = document.getElementById(id);
     if (btn) {
+      // Example for Buttons
       btn.addEventListener("pointerdown", (e) => {
         e.preventDefault();
-        socket.send(JSON.stringify({ type: "button", playerId, button: btn.innerText }));
-        btn.style.opacity = "0.5";
+
+        // Only send if we have a valid slot (1 or 2)
+        if (mySlot > 0 && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({
+            type: "button",
+            playerId: playerId,
+            slot: mySlot,
+            button: btn.innerText
+          }));
+          btn.style.opacity = "0.5";
+        } else {
+          console.log("Input blocked: You are a spectator.");
+        }
       });
       btn.addEventListener("pointerup", () => btn.style.opacity = "1.0");
       btn.addEventListener("pointercancel", () => btn.style.opacity = "1.0");
