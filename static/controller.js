@@ -36,37 +36,24 @@ class Controller {
     this.socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("message received:", data);
-        console.log(JSON.stringify(data));
 
-        if (!data.playerId) return;
+        // If it's a game input, store it by SLOT
+        if (data.slot && (data.type === "joystick" || data.type === "button")) {
+          if (!this.players[data.slot]) {
+            this.players[data.slot] = { directionX: 0, directionY: 0, button: null };
+          }
 
-        if (!this.players[data.playerId]) {
-          this.players[data.playerId] = {
-            direction: null,
-            button: null
-          };
+          if (data.type === "joystick") {
+            this.players[data.slot].x = data.directionX;
+            this.players[data.slot].y = data.directionY;
+          }
+
+          if (data.type === "button") {
+            this.players[data.slot].button = data.button;
+            setTimeout(() => { this.players[data.slot].button = null; }, 150);
+          }
         }
-
-        if (data.type === "joystick") {
-          this.players[data.playerId].direction = data.direction;
-        }
-
-        if (data.type === "button") {
-          this.players[data.playerId].button = data.button;
-
-          setTimeout(() => {
-            if (this.players[data.playerId]) {
-              this.players[data.playerId].button = null;
-            }
-          }, 150);
-        }
-
-        console.log("players:", this.players);
-
-      } catch (err) {
-        console.warn("Could not parse server message:", err);
-      }
+      } catch (err) { console.warn(err); }
     };
   }
 
