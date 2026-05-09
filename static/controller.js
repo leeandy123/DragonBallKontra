@@ -9,7 +9,7 @@ class Controller {
     this.lastButton = null;
     this.socket = null;
     this.inputLog = null;
-    this.inputstate = { direction: null };
+    this.players = {};
     this._initSocket();
   }
 
@@ -26,7 +26,7 @@ class Controller {
     }
 
 // Send UUID in websocket URL
-    const socket = new WebSocket(
+    this.socket = new WebSocket(
         `${protocol}://${location.host}/ws?id=${playerId}`
     );
 
@@ -38,11 +38,21 @@ class Controller {
         const data = JSON.parse(event.data);
         console.log("message received");
         console.log(JSON.stringify(data));
-        if (data.type === "joystick" && data.playerId === this.playerId) {
-          this.inputstate["direction"] = data.direction;
-          console.log("Joystick + player ID match");
+        if (data.type === "joystick") {
+
+          // Create player entry if missing
+          if (!this.players[data.playerId]) {
+            this.players[data.playerId] = {
+              direction: null
+            };
+          }
+
+          // Update THAT player's state
+          this.players[data.playerId].direction = data.direction;
+
+          console.log(this.players);
         }
-        
+
       } catch (err) {
         console.warn("Could not parse server message:", err);
       }
@@ -57,15 +67,15 @@ class Controller {
     return this.lastButton;
   }
 
-  getInputState() {
-    return this.inputstate;
+  getPlayers() {
+    return this.players;
   }
 }
 
 // We may want to refactor to a module in order to import if the games are in there individual js files
 let controllerInstance = new Controller();
-window.getInputState = function () {
-  return controllerInstance.getInputState();
+window.getPlayers = function () {
+  return controllerInstance.getPlayers();
 }
 
 export default Controller;
