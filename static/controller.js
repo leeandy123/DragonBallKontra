@@ -71,9 +71,17 @@ class Controller {
 }
 
 // We may want to refactor to a module in order to import if the games are in their individual js files
-let controllerInstance = new Controller();
-window.getPlayers = function () {
-  return controllerInstance.getPlayers();
+if (window.location.pathname === "/") {
+
+  let controllerInstance = new Controller(
+      window.location.pathname === "/"
+          ? "viewer"
+          : crypto.randomUUID()
+  );
+
+  window.getPlayers = function () {
+    return controllerInstance.getPlayers();
+  };
 }
 
 export default Controller;

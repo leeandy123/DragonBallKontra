@@ -34,7 +34,10 @@ function updateFighters() {
         const fighter = fighters[id];
 
         fighter.x += Number(player.directionX || 0) * 8;
-        fighter.y -= Number(player.directionY || 0) * 8;
+
+        if (fighter.flying) {
+            fighter.y -= Number(player.directionY || 0) * 8;
+        }
 
         // UP (FLY)
         if (fighter.flying && player.direction === "up") {

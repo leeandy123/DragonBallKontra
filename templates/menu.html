@@ -17,6 +17,23 @@
 <script type="module" src="/static/controller.js"></script>
 <script type="module" src="/static/fighter.js"></script>
 <script>
+const bgMusic = new Audio("/static/DBZ - Perfect Cell Theme Remix 5.mp3");
+
+bgMusic.loop = true;
+bgMusic.volume = 0.2;
+
+window.addEventListener("load", () => {
+
+    bgMusic.play().catch(() => {
+
+        document.addEventListener("pointerdown", () => {
+            bgMusic.play();
+        }, { once: true });
+
+    });
+
+});
+
 
 const { init, Text, GameLoop, keyPressed, initKeys, Scene, Sprite, imageAssets, load, initPointer } = kontra;
 
@@ -63,7 +80,38 @@ initKeys();
 initPointer();
 
 let menuText = Text({ x: 100, y: 50, text: 'Welcome to GameGarage!', font:'24px sans-serif', color:'black' });
+const startImage = new Image();
+startImage.src = "/static/startscreen.png";
 
+let startScreen = Sprite({
+    x: 0,
+    y: 0,
+    image: startImage,
+
+    render() {
+
+        const scale = Math.min(
+            canvas.width / this.image.width,
+            canvas.height / this.image.height
+        );
+
+        const drawWidth = this.image.width * scale;
+        const drawHeight = this.image.height * scale;
+
+        const drawX = (canvas.width - drawWidth) / 2;
+        const drawY = (canvas.height - drawHeight) / 2;
+
+        context.drawImage(
+            this.image,
+            drawX,
+            drawY,
+            drawWidth,
+            drawHeight
+        );
+    }
+});
+
+let gameStarted = false;
 load().then(() => {
 
 
@@ -73,12 +121,29 @@ load().then(() => {
             render() {
                 context.clearRect(0,0,canvas.width,canvas.height);
 
+                if (!gameStarted) {
+                    startScreen.render();
+                    return;
+                }
+
                 window.renderFighters?.();
 
                 menuText.render();
             },
             update() {
-                window.updateFighters?.();
+
+                const players = window.getPlayers?.() || {};
+
+                for (const id in players) {
+
+                    if (players[id].button === "X") {
+                        gameStarted = true;
+                    }
+                }
+
+                if (gameStarted) {
+                    window.updateFighters?.();
+                }
             }
         });
 

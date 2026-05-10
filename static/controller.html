@@ -95,8 +95,7 @@
   let mySlot = 0; // 0 means unassigned or spectator
 
   const protocol = location.protocol === "https:" ? "wss" : "ws";
-  let playerId = localStorage.getItem("playerId") || crypto.randomUUID();
-  localStorage.setItem("playerId", playerId);
+  let playerId = crypto.randomUUID();
 
   const socket = new WebSocket(`${protocol}://${location.host}/ws?id=${playerId}`);
   socket.onmessage = (event) => {
