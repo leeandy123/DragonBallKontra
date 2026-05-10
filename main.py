@@ -10,6 +10,7 @@ app = FastAPI()
 
 # Mount the static folder to serve HTML files
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/games", StaticFiles(directory="games"), name="games")
 templates = Jinja2Templates(directory="templates")
 
 # main.py

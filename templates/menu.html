@@ -8,13 +8,14 @@
         canvas {
           display: block;
           margin: 0 auto;
-          background: BlanchedAlmond;
+          background: black;
         }
     </style>
 </head>
 <body>
 <canvas id="gameCanvas" width="1000" height="1000"></canvas>
 <script type="module" src="/static/controller.js"></script>
+<script type="module" src="/static/fighter.js"></script>
 <script>
 
 const { init, Text, GameLoop, keyPressed, initKeys, Scene, Sprite, imageAssets, load, initPointer } = kontra;
@@ -63,63 +64,21 @@ initPointer();
 
 let menuText = Text({ x: 100, y: 50, text: 'Welcome to GameGarage!', font:'24px sans-serif', color:'black' });
 
-let games =  {{templates}}
-console.log(games);
-let assets = [];
-for (let game of games) {
-    assets.push(`/games/${game}/${game}screenshot.png`);
-}
-
-load(...assets).then(() => {
-  let options = [];
-  let gameScreenshots = [];
-
-
-  for (let i = 0; i < games.length; i++) {
-    const imagePath = `/games/${games[i]}/${games[i]}screenshot.png`;
-    const image = imageAssets[imagePath];
-
-    const targetWidth = 150;
-    const scale = targetWidth / image.width;
-
-    if (!image) console.warn('Image not found:', imagePath);
-
-    options.push(Text({
-      x: 50 + 200 * i,
-      y: 100,
-      text: (i + 1) + ': ' + games[i],
-      font: '18px sans-serif',
-      color: 'black'
-    }));
-
-    gameScreenshots.push(Sprite({
-      x: 50 + 200 * i,
-      y: 200,
-      width: 128,
-      height: 128,
-      image: image,
-      scaleX: scale,
-      scaleY: scale
-    }));
-  }
+load().then(() => {
 
 
         // menu scene
         let menuScene = Scene({
         id: 'menu',
-        render() {
-          context.clearRect(0,0,canvas.width,canvas.height);
-          menuText.render();
-          gameScreenshots.forEach(screenshot => screenshot.render());
-          options.forEach( option => option.render());
-        },
+            render() {
+                context.clearRect(0,0,canvas.width,canvas.height);
+
+                window.renderFighters?.();
+
+                menuText.render();
+            },
             update() {
-              if (keyPressed('1')){
-                loadGame(games[0]);
-              }
-              if (keyPressed('2')){
-                loadGame(games[1]);
-              }
+                window.updateFighters?.();
             }
         });
 
@@ -134,22 +93,6 @@ sceneManager.setScene('menu');
 console.log('Canvas:', canvas, 'Context:', context);
 console.log('SceneManager initial:', sceneManager);
 
-
-
-function loadGame(name) {
-    import(`./games/${name}/${name}.js`).then(module => {
-        console.log(name);
-        console.log("inside the promise for the import statement");
-        let scene = module.default({ canvas: canvas, context: context, name: name, kontra: kontra});
-        console.log("before setting scene");
-        console.log(scene.id)
-        console.log("not added yet");
-        sceneManager.add(scene);
-        console.log("finished adding scene");
-        sceneManager.setScene(name);
-        console.log("set the scene");
-      }).catch(err => console.error('Failed to load:', name, err));
-}
 
 GameLoop({
     update(){
