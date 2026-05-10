@@ -50,7 +50,7 @@ class Controller {
 
           if (data.type === "button") {
             this.players[data.slot].button = data.button;
-            setTimeout(() => { this.players[data.slot].button = null; }, 150);
+            this.players[data.slot].pressed = data.pressed;
           }
         }
       } catch (err) { console.warn(err); }

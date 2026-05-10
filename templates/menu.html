@@ -5,172 +5,59 @@
     <title>GameGarage Menu</title>
     <script src="https://unpkg.com/kontra@10.0.2/kontra.min.js"></script>
     <style>
-        canvas {
-          display: block;
-          margin: 0 auto;
-          background: black;
+
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: black;
         }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            background: black;
+        }
+
     </style>
 </head>
 <body>
-<canvas id="gameCanvas" width="1000" height="1000"></canvas>
+<canvas id="gameCanvas"></canvas>
 <script type="module" src="/static/controller.js"></script>
 <script type="module" src="/static/fighter.js"></script>
 <script>
-const bgMusic = new Audio("/static/DBZ - Perfect Cell Theme Remix 5.mp3");
 
-bgMusic.loop = true;
-bgMusic.volume = 0.2;
+    const {
+        init,
+        GameLoop,
+        initKeys,
+        initPointer
+    } = kontra;
 
-window.addEventListener("load", () => {
+    let { canvas, context } = init('gameCanvas');
 
-    bgMusic.play().catch(() => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-        document.addEventListener("pointerdown", () => {
-            bgMusic.play();
-        }, { once: true });
+    initKeys();
+    initPointer();
 
-    });
+    GameLoop({
 
-});
+        update() {
+            window.updateFighters?.();
+        },
 
+        render() {
 
-const { init, Text, GameLoop, keyPressed, initKeys, Scene, Sprite, imageAssets, load, initPointer } = kontra;
+            context.clearRect(0,0,canvas.width,canvas.height);
 
-class SceneManager {
-    constructor() {
-      this.scenes = {};
-      this.current = null;
-    }
-
-    add(scene) {
-
-        this.scenes[scene.id] = scene;
-        if(this.scenes.length === 1){
-            this.current = scene
+            window.renderFighters?.(context, canvas);
         }
 
-    }
-
-    setScene(id) {
-
-
-      if(this.current != null){
-        this.current.hide();
-      }
-      console.log("inside set scene: " + id)
-
-      console.log(JSON.stringify(this.scenes));
-      this.current = this.scenes[id];
-      this.current.show();
-
-    }
-
-    update(dt=1 / 60) {
-      this.current?.update(dt);
-    }
-    render() {
-      //console.log('menuScene.render');
-      this.current?.render();
-    }
-}
-
-let { canvas, context } = init('gameCanvas');
-initKeys();
-initPointer();
-
-let menuText = Text({ x: 100, y: 50, text: 'Welcome to GameGarage!', font:'24px sans-serif', color:'black' });
-const startImage = new Image();
-startImage.src = "/static/startscreen.png";
-
-let startScreen = Sprite({
-    x: 0,
-    y: 0,
-    image: startImage,
-
-    render() {
-
-        const scale = Math.min(
-            canvas.width / this.image.width,
-            canvas.height / this.image.height
-        );
-
-        const drawWidth = this.image.width * scale;
-        const drawHeight = this.image.height * scale;
-
-        const drawX = (canvas.width - drawWidth) / 2;
-        const drawY = (canvas.height - drawHeight) / 2;
-
-        context.drawImage(
-            this.image,
-            drawX,
-            drawY,
-            drawWidth,
-            drawHeight
-        );
-    }
-});
-
-let gameStarted = false;
-load().then(() => {
-
-
-        // menu scene
-        let menuScene = Scene({
-        id: 'menu',
-            render() {
-                context.clearRect(0,0,canvas.width,canvas.height);
-
-                if (!gameStarted) {
-                    startScreen.render();
-                    return;
-                }
-
-                window.renderFighters?.();
-
-                menuText.render();
-            },
-            update() {
-
-                const players = window.getPlayers?.() || {};
-
-                for (const id in players) {
-
-                    if (players[id].button === "X") {
-                        gameStarted = true;
-                    }
-                }
-
-                if (gameStarted) {
-                    window.updateFighters?.();
-                }
-            }
-        });
-
-
-
-let sceneManager = new SceneManager();
-sceneManager.add(menuScene);
-sceneManager.setScene('menu');
-
-
-
-console.log('Canvas:', canvas, 'Context:', context);
-console.log('SceneManager initial:', sceneManager);
-
-
-GameLoop({
-    update(){
-        sceneManager.update()
-        //console.log(sceneManager.current.id);
-    },
-    render(){
-        sceneManager.render()
-    }
-}).start();
-
-
-});
+    }).start();
 
 </script>
 </body>
