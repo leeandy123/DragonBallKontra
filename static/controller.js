@@ -44,8 +44,8 @@ class Controller {
           }
 
           if (data.type === "joystick") {
-            this.players[data.slot].x = data.directionX;
-            this.players[data.slot].y = data.directionY;
+            this.players[data.slot].directionX = data.directionX;
+            this.players[data.slot].directionY = data.directionY;
           }
 
           if (data.type === "button") {
