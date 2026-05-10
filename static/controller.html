@@ -173,24 +173,99 @@
     const btn = document.getElementById(id);
     if (btn) {
       // Example for Buttons
+      let holdInterval = null;
+
       btn.addEventListener("pointerdown", (e) => {
+
         e.preventDefault();
 
-        // Only send if we have a valid slot (1 or 2)
+        if (mySlot > 0 && socket.readyState === WebSocket.OPEN) {
+
+          socket.send(JSON.stringify({
+            type: "button",
+            playerId: playerId,
+            slot: mySlot,
+            button: btn.innerText,
+            pressed: true
+          }));
+
+          btn.style.opacity = "0.5";
+        }
+      });
+
+      btn.addEventListener("pointerup", () => {
+
+        if (mySlot > 0 && socket.readyState === WebSocket.OPEN) {
+
+          socket.send(JSON.stringify({
+            type: "button",
+            playerId: playerId,
+            slot: mySlot,
+            button: null,
+            pressed: false
+          }));
+        }
+
+        btn.style.opacity = "1.0";
+      });
+
+      btn.addEventListener("pointercancel", () => {
+
+        if (mySlot > 0 && socket.readyState === WebSocket.OPEN) {
+
+          socket.send(JSON.stringify({
+            type: "button",
+            playerId: playerId,
+            slot: mySlot,
+            button: null,
+            pressed: false
+          }));
+        }
+
+        btn.style.opacity = "1.0";
+      });
+
+      btn.addEventListener("pointerup", () => {
+
+        clearInterval(holdInterval);
+
+        btn.style.opacity = "1.0";
+      });
+
+      btn.addEventListener("pointercancel", () => {
+
+        clearInterval(holdInterval);
+
+        btn.style.opacity = "1.0";
+      });
+      btn.addEventListener("touchend", () => {
+
         if (mySlot > 0 && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({
             type: "button",
             playerId: playerId,
             slot: mySlot,
-            button: btn.innerText
+            button: null,
+            pressed: false
           }));
-          btn.style.opacity = "0.5";
-        } else {
-          console.log("Input blocked: You are a spectator.");
         }
-      });
-      btn.addEventListener("pointerup", () => btn.style.opacity = "1.0");
-      btn.addEventListener("pointercancel", () => btn.style.opacity = "1.0");
+
+        btn.style.opacity = "1.0";
+      }, { passive: false });
+      btn.addEventListener("touchcancel", () => {
+
+        if (mySlot > 0 && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({
+            type: "button",
+            playerId: playerId,
+            slot: mySlot,
+            button: null,
+            pressed: false
+          }));
+        }
+
+        btn.style.opacity = "1.0";
+      }, { passive: false });
     }
   });
 
