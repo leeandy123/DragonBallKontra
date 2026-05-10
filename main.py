@@ -36,12 +36,16 @@ class ConnectionManager:
         self.active_connections[player_id] = websocket
 
         assigned_slot = 0
-        if self.slots[1] is None:
-            self.slots[1] = player_id
-            assigned_slot = 1
-        elif self.slots[2] is None:
-            self.slots[2] = player_id
-            assigned_slot = 2
+
+        if player_id != "viewer":
+
+            if self.slots[1] is None:
+                self.slots[1] = player_id
+                assigned_slot = 1
+
+            elif self.slots[2] is None:
+                self.slots[2] = player_id
+                assigned_slot = 2
 
         # This is the line that will show the assignment in your console
         if assigned_slot > 0:
@@ -82,6 +86,7 @@ warned_spectators = set()
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     player_id = websocket.query_params.get("id", "unknown")
+    is_viewer = player_id == "viewer"
 
     # The manager handles the initial connection and slot assignment
     await manager.connect(websocket, player_id)
