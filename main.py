@@ -17,7 +17,7 @@ templates = Jinja2Templates(directory="templates")
 async def menu(request: Request):
     return templates.TemplateResponse(
         request=request,
-        name="menu.html"
+        name="gamescreen.html"
     )
 
 @app.get("/controller")

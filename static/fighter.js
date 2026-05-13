@@ -6,39 +6,34 @@ const fighters = {};
 const kiBlasts = [];
 const kiCharges = [];
 
-const bgMusic = new Audio("/static/DBZ - Perfect Cell Theme Remix 5.mp3");
-
-bgMusic.loop = true;
-bgMusic.volume = 0.2;
-
-window.addEventListener("load", () => {
-
-    bgMusic.play().catch(() => {
-
-        document.addEventListener("pointerdown", () => {
-            bgMusic.play();
-        }, { once: true });
-
-    });
-
-});
-
 const startImage = new Image();
 startImage.src = "/static/startscreen.png";
+
+const stageImage = new Image();
+stageImage.src = "/static/stage.jpg";
 
 let gameStarted = false;
 
 function createFighter(id) {
 
+    const fighterCount = Object.keys(fighters).length;
+
+    const isPlayer2 = fighterCount === 1;
+
     fighters[id] = Sprite({
 
-        x: 200,
-        y: 700,
+        x: isPlayer2
+            ? window.innerWidth - 250
+            : 200,
+
+        y: 300,
 
         width: 50,
         height: 50,
 
-        color: "blue",
+        color: isPlayer2
+            ? "red"
+            : "blue",
 
         dx: 0,
         dy: 0,
@@ -50,13 +45,16 @@ function createFighter(id) {
         canDoubleJump: false,
 
         hoverOffset: 0,
-        lastButton: null,
 
-        facing: 1,
-        ki: 0,
+        facing: isPlayer2 ? -1 : 1,
+
+        ki: 100,
         health: 300,
-        charging: false
 
+        charging: false,
+
+        aPressed: false,
+        yPressed: false
     });
 }
 
@@ -91,7 +89,7 @@ function updateFighters() {
         const rightBoundary = window.innerWidth - fighter.width;
 
         const topBoundary = 0;
-        const bottomBoundary = window.innerHeight - 100;
+        const bottomBoundary = window.innerHeight - 220;
 
         const moveX = Number(player.directionX || 0);
         const moveY = Number(player.directionY || 0);
@@ -330,6 +328,15 @@ function renderFighters(context, canvas) {
         return;
     }
 
+    // STAGE BACKGROUND
+    context.drawImage(
+        stageImage,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
     // FIGHTERS
     for (const id in fighters) {
         const fighter = fighters[id];
@@ -354,27 +361,27 @@ function renderFighters(context, canvas) {
 
         const fighter = fighters[fighterIds[0]];
 
-        context.globalAlpha = 0.7;
+        context.globalAlpha = 0.85;
 
         context.fillStyle = "white";
-        context.font = "24px Arial";
-        context.fillText("PLAYER 1", 40, 30);
+        context.font = "bold 28px Arial";
+        context.fillText("PLAYER 1", 40, 40);
 
         // HEALTH BG
-        context.fillStyle = "black";
-        context.fillRect(40, 40, 300, 25);
+        context.fillStyle = "rgba(0,0,0,0.7)";
+        context.fillRect(40, 55, 320, 28);
 
         // HEALTH
-        context.fillStyle = "lime";
-        context.fillRect(40, 40, fighter.health, 25);
+        context.fillStyle = "#32ff32";
+        context.fillRect(40, 55, fighter.health, 28);
 
         // KI BG
-        context.fillStyle = "black";
-        context.fillRect(40, 75, 300, 15);
+        context.fillStyle = "rgba(0,0,0,0.7)";
+        context.fillRect(40, 92, 320, 18);
 
         // KI
-        context.fillStyle = "cyan";
-        context.fillRect(40, 75, fighter.ki * 3, 15);
+        context.fillStyle = "#00d9ff";
+        context.fillRect(40, 92, fighter.ki * 3, 18);
     }
 
 // PLAYER 2
@@ -382,54 +389,57 @@ function renderFighters(context, canvas) {
 
         const fighter = fighters[fighterIds[1]];
 
-        context.globalAlpha = 0.7;
+        context.globalAlpha = 0.85;
 
         context.fillStyle = "white";
-        context.font = "24px Arial";
+        context.font = "bold 28px Arial";
+
         context.fillText(
             "PLAYER 2",
-            window.innerWidth - 180,
-            30
+            window.innerWidth - 210,
+            40
         );
 
         // HEALTH BG
-        context.fillStyle = "black";
+        context.fillStyle = "rgba(0,0,0,0.7)";
         context.fillRect(
-            window.innerWidth - 340,
-            40,
-            300,
-            25
+            window.innerWidth - 360,
+            55,
+            320,
+            28
         );
 
         // HEALTH
-        context.fillStyle = "red";
+        context.fillStyle = "#ff3232";
         context.fillRect(
             window.innerWidth - 40 - fighter.health,
-            40,
+            55,
             fighter.health,
-            25
+            28
         );
 
         // KI BG
-        context.fillStyle = "black";
+        context.fillStyle = "rgba(0,0,0,0.7)";
         context.fillRect(
-            window.innerWidth - 340,
-            75,
-            300,
-            15
+            window.innerWidth - 360,
+            92,
+            320,
+            18
         );
 
         // KI
-        context.fillStyle = "cyan";
+        context.fillStyle = "#00d9ff";
         context.fillRect(
             window.innerWidth - 40 - (fighter.ki * 3),
-            75,
+            92,
             fighter.ki * 3,
-            15
+            18
         );
     }
 
     context.globalAlpha = 1;
+
+
 
 // KI BLASTS
     for (const blast of kiBlasts) {

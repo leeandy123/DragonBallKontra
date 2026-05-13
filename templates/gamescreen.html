@@ -29,6 +29,26 @@
 <script type="module" src="/static/fighter.js"></script>
 <script>
 
+    const bgMusic = new Audio("/static/DBZ - Perfect Cell Theme Remix 5.mp3");
+
+    bgMusic.loop = true;
+    bgMusic.volume = 0.2;
+
+    window.addEventListener("load", () => {
+
+        bgMusic.play().catch(() => {
+
+            document.addEventListener("pointerdown", () => {
+                bgMusic.play();
+            }, { once: true });
+
+        });
+
+    });
+
+</script>
+<script>
+
     const {
         init,
         GameLoop,
