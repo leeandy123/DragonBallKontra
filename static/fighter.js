@@ -30,7 +30,10 @@ load(
     "/static/sprites/trunks/run.png",
 
     "/static/sprites/gokublack/idle.png",
-    "/static/sprites/gokublack/run.png"
+    "/static/sprites/gokublack/run.png",
+
+    "/static/sprites/trunks/start.png",
+    "/static/sprites/gokublack/start.png",
 ).then(() => {
 
     startImage =
@@ -61,6 +64,21 @@ function createFighter(id) {
 
     fighters[id] = Sprite({
 
+        blocking: false,
+
+        attacking: false,
+        heavyAttacking: false,
+
+        attackTimer: 0,
+
+        meleeHeldFrames: 0,
+
+        blockMeter: 100,
+
+        stunned: false,
+        stunTimer: 0,
+
+        hitConnected: false,
 
 
         scaleX: 3,
@@ -95,7 +113,7 @@ function createFighter(id) {
             : "trunks",
 
         ki: 100,
-        health: 300,
+        health: 320,
 
         charging: false,
 
@@ -253,7 +271,46 @@ function updateFighters() {
             fighter.yPressed = false;
         }
 
+        // BLOCK
+        fighter.blocking =
+            player.button === "F";
 
+        // MELEE HOLD
+        if (player.button === "M") {
+
+            fighter.meleeHeldFrames++;
+        }
+
+// RELEASE ATTACK
+        else if (
+            fighter.meleeHeldFrames > 0 &&
+            !fighter.attacking
+        ) {
+
+            fighter.attacking = true;
+
+            // HEAVY
+            if (fighter.meleeHeldFrames > 20) {
+
+                fighter.heavyAttacking = true;
+
+                fighter.attackTimer = 28;
+
+                cameraShake = 12;
+            }
+
+            // LIGHT
+            else {
+
+                fighter.heavyAttacking = false;
+
+                fighter.attackTimer = 12;
+
+                cameraShake = 5;
+            }
+
+            fighter.meleeHeldFrames = 0;
+        }
 
         // DASH
         if (
@@ -354,6 +411,75 @@ function updateFighters() {
         // CEILING
         if (fighter.y < topBoundary) {
             fighter.y = topBoundary;
+        }
+        for (const otherId in fighters) {
+
+            if (otherId === id) continue;
+
+            const enemy = fighters[otherId];
+
+            const distance =
+                Math.abs(fighter.x - enemy.x);
+
+            if (
+                fighter.attacking &&
+                !fighter.hitConnected &&
+                distance < 120
+            ) {
+                fighter.hitConnected = true;
+
+                // BLOCKING
+                if (enemy.blocking) {
+
+                    // HEAVY BREAKS BLOCK
+                    if (fighter.heavyAttacking) {
+
+                        enemy.blockMeter = 0;
+
+                        enemy.stunned = true;
+                        enemy.stunTimer = 40;
+
+                        cameraShake = 18;
+                    }
+                    else {
+
+                        enemy.blockMeter -= 0.7;
+                    }
+                }
+
+                // NORMAL HIT
+                else {
+
+                    enemy.health -=
+                        fighter.heavyAttacking
+                            ? 12
+                            : 4;
+
+                    enemy.x +=
+                        fighter.facing *
+                        (fighter.heavyAttacking ? 30 : 12);
+                }
+            }
+            if (fighter.blockMeter <= 0) {
+
+                fighter.stunned = true;
+
+                fighter.stunTimer = 60;
+
+                fighter.blockMeter = 100;
+            }
+
+            if (fighter.stunned) {
+
+                fighter.stunTimer--;
+
+                if (fighter.stunTimer <= 0) {
+
+                    fighter.stunned = false;
+                }
+
+                continue;
+            }
         }
     }
 }
@@ -500,6 +626,13 @@ function renderFighters(context, canvas) {
 
         context.fillRect(
             40,
+            92,
+            fighter.ki * 3.2,
+            18
+        );
+
+        context.fillRect(
+            40,
             55,
             fighter.health,
             28
@@ -516,20 +649,19 @@ function renderFighters(context, canvas) {
         );
 
         // KI BG
+        context.shadowBlur = 0;
+        context.shadowColor = "transparent";
+
         context.fillStyle = "rgba(0,0,0,0.7)";
-        context.fillRect(40, 92, 320, 18);
 
-        context.strokeStyle = "white";
-        context.lineWidth = 2;
-
-        context.strokeRect(
+        context.fillRect(
             40,
             92,
             320,
             18
         );
 
-        // KI
+// KI GRADIENT
         const kiGradient =
             context.createLinearGradient(
                 40,
@@ -545,6 +677,27 @@ function renderFighters(context, canvas) {
 
         context.shadowColor = "#00cfff";
         context.shadowBlur = 12;
+
+        context.fillRect(
+            40,
+            92,
+            fighter.ki * 3.2,
+            18
+        );
+
+// KI OUTLINE
+        context.shadowBlur = 0;
+        context.shadowColor = "transparent";
+
+        context.strokeStyle = "white";
+        context.lineWidth = 2;
+
+        context.strokeRect(
+            40,
+            92,
+            320,
+            18
+        );
     }
 
 // PLAYER 2
@@ -616,6 +769,14 @@ function renderFighters(context, canvas) {
             18
         );
 
+        // KI FILL
+        context.fillRect(
+            window.innerWidth - 40 - (fighter.ki * 3.2),
+            92,
+            fighter.ki * 3.2,
+            18
+        );
+
 // KI GRADIENT
         const kiGradient2 =
             context.createLinearGradient(
@@ -632,13 +793,6 @@ function renderFighters(context, canvas) {
 
         context.shadowColor = "#00cfff";
         context.shadowBlur = 12;
-
-        context.fillRect(
-            window.innerWidth - 40 - (fighter.ki * 3),
-            92,
-            fighter.ki * 3,
-            18
-        );
 
 // KI OUTLINE
         context.strokeStyle = "white";

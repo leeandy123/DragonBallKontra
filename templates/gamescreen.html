@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <title>GameGarage Menu</title>
     <script src="https://unpkg.com/kontra@10.0.2/kontra.min.js"></script>
-    <style>
 
+    <style>
         html, body {
             margin: 0;
             width: 100%;
@@ -20,44 +20,41 @@
             height: 100vh;
             background: black;
         }
-
     </style>
 </head>
+
 <body>
 <canvas id="gameCanvas"></canvas>
+
 <script type="module" src="/static/controller.js"></script>
 <script type="module" src="/static/fighter.js"></script>
-<script>
 
+<script>
     const bgMusic = new Audio("/static/DBZ - Perfect Cell Theme Remix 5.mp3");
 
     bgMusic.loop = true;
     bgMusic.volume = 0.2;
 
     window.addEventListener("load", () => {
-
         bgMusic.play().catch(() => {
-
             document.addEventListener("pointerdown", () => {
                 bgMusic.play();
             }, { once: true });
-
         });
-
     });
-
 </script>
-<script>
 
+<script>
     const {
         init,
         GameLoop,
         initKeys,
         initPointer,
-        Scene
+        Scene,
+        imageAssets
     } = kontra;
 
-    let { canvas, context } = init('gameCanvas');
+    let { canvas, context } = init("gameCanvas");
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -65,18 +62,48 @@
     initKeys();
     initPointer();
 
+    window.player1Character = "trunks";
+    window.player2Character = "black";
+
     const menuScene = Scene({
         id: "menu",
 
         update() {
-
             const players = window.getPlayers?.() || {};
 
             for (const id in players) {
-
                 if (players[id].button === "X") {
-
                     menuScene.hidden = true;
+                    characterSelectScene.hidden = false;
+                }
+            }
+        },
+
+        render() {
+            window.renderStartScreen?.(context, canvas);
+        }
+    });
+
+    const characterSelectScene = Scene({
+        id: "characterSelect",
+        hidden: true,
+
+        update() {
+            const players = window.getPlayers?.() || {};
+
+            for (const id in players) {
+                const player = players[id];
+
+                if (player.directionX < -0.5) {
+                    window.player1Character = "trunks";
+                }
+
+                if (player.directionX > 0.5) {
+                    window.player1Character = "black";
+                }
+
+                if (player.button === "A") {
+                    characterSelectScene.hidden = true;
                     fightScene.hidden = false;
                 }
             }
@@ -84,54 +111,134 @@
 
         render() {
 
-            window.renderStartScreen?.(context, canvas);
+            context.fillStyle = "black";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+
+            context.fillStyle = "white";
+            context.font = "bold 64px Arial";
+            context.textAlign = "center";
+
+            context.fillText(
+                "SELECT CHARACTER",
+                centerX,
+                120
+            );
+
+            const trunksPreview =
+                imageAssets["/static/sprites/trunks/start.png"] ||
+                imageAssets["/static/sprites/trunks/idle.png"];
+
+            const blackPreview =
+                imageAssets["/static/sprites/gokublack/start.png"] ||
+                imageAssets["/static/sprites/gokublack/idle.png"];
+
+            const leftX = centerX - 350;
+            const rightX = centerX + 130;
+
+            const spriteY = 220;
+
+            // TRUNKS
+            if (trunksPreview) {
+
+                context.drawImage(
+                    trunksPreview,
+                    leftX,
+                    spriteY,
+                    trunksPreview.width * 4,
+                    trunksPreview.height * 4
+                );
+            }
+
+            // GOKU BLACK
+            if (blackPreview) {
+
+                context.drawImage(
+                    blackPreview,
+                    rightX,
+                    spriteY,
+                    blackPreview.width * 4,
+                    blackPreview.height * 4
+                );
+            }
+
+            // SELECTION BOX
+            context.strokeStyle = "yellow";
+            context.lineWidth = 6;
+
+            context.strokeRect(
+
+                window.player1Character === "trunks"
+                    ? leftX - 20
+                    : rightX - 20,
+
+                spriteY - 20,
+                220,
+                260
+            );
+
+            context.font = "32px Arial";
+            context.fillStyle = "white";
+
+            context.fillText(
+                "TRUNKS",
+                leftX + 90,
+                560
+            );
+
+            context.fillText(
+                "GOKU BLACK",
+                rightX + 90,
+                560
+            );
+
+            context.font = "24px Arial";
+            context.fillStyle = "#aaaaaa";
+
+            context.fillText(
+                "Move Stick Left/Right To Choose",
+                centerX,
+                650
+            );
+
+            context.fillText(
+                "Press A To Confirm",
+                centerX,
+                700
+            );
+
+            context.textAlign = "left";
         }
     });
 
     const fightScene = Scene({
         id: "fight",
-
         hidden: true,
 
         update() {
-
             window.updateFighters?.();
         },
 
         render() {
-
-            context.clearRect(0,0,canvas.width,canvas.height);
-
+            context.clearRect(0, 0, canvas.width, canvas.height);
             window.renderFighters?.(context, canvas);
         }
     });
 
     GameLoop({
-
         update() {
-
-            if (!menuScene.hidden) {
-                menuScene.update();
-            }
-
-            if (!fightScene.hidden) {
-                fightScene.update();
-            }
+            if (!menuScene.hidden) menuScene.update();
+            if (!characterSelectScene.hidden) characterSelectScene.update();
+            if (!fightScene.hidden) fightScene.update();
         },
 
         render() {
-
-            if (!menuScene.hidden) {
-                menuScene.render();
-            }
-
-            if (!fightScene.hidden) {
-                fightScene.render();
-            }
+            if (!menuScene.hidden) menuScene.render();
+            if (!characterSelectScene.hidden) characterSelectScene.render();
+            if (!fightScene.hidden) fightScene.render();
         }
-
     }).start();
-
 </script>
 </body>
 </html>
