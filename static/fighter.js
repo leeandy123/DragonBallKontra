@@ -1,19 +1,58 @@
-const {
-    Sprite
-} = kontra;
-
 const fighters = {};
 const kiBlasts = [];
 const kiCharges = [];
 
-const startImage = new Image();
-startImage.src = "/static/startscreen.png";
+const {
+    Sprite,
+    SpriteSheet,
+    load,
+    imageAssets
+} = kontra;
 
-const stageImage = new Image();
-stageImage.src = "/static/stage.jpg";
+let startImage;
+let stageImage;
 
-let gameStarted = false;
+let trunksIdle;
+let trunksRun;
 
+let blackIdle;
+let blackRun;
+
+let cameraShake = 0;
+
+let assetsReady = false;
+
+load(
+    "/static/startscreen.png",
+    "/static/stage.jpg",
+
+    "/static/sprites/trunks/idle.png",
+    "/static/sprites/trunks/run.png",
+
+    "/static/sprites/gokublack/idle.png",
+    "/static/sprites/gokublack/run.png"
+).then(() => {
+
+    startImage =
+        imageAssets["/static/startscreen.png"];
+
+    stageImage =
+        imageAssets["/static/stage.jpg"];
+
+    trunksIdle =
+        imageAssets["/static/sprites/trunks/idle.png"];
+
+    trunksRun =
+        imageAssets["/static/sprites/trunks/run.png"];
+
+    blackIdle =
+        imageAssets["/static/sprites/gokublack/idle.png"];
+
+    blackRun =
+        imageAssets["/static/sprites/gokublack/run.png"];
+
+    assetsReady = true;
+});
 function createFighter(id) {
 
     const fighterCount = Object.keys(fighters).length;
@@ -22,24 +61,27 @@ function createFighter(id) {
 
     fighters[id] = Sprite({
 
+
+
+        scaleX: 3,
+        scaleY: 3,
+
         x: isPlayer2
             ? window.innerWidth - 250
             : 200,
 
         y: 300,
 
-        width: 50,
-        height: 50,
-
-        color: isPlayer2
-            ? "red"
-            : "blue",
+        image: isPlayer2
+            ? blackIdle
+            : trunksIdle,
 
         dx: 0,
         dy: 0,
 
         grounded: true,
         flying: false,
+        bPressed: false,
 
         jumpTimer: 0,
         canDoubleJump: false,
@@ -47,6 +89,10 @@ function createFighter(id) {
         hoverOffset: 0,
 
         facing: isPlayer2 ? -1 : 1,
+
+        character: isPlayer2
+            ? "black"
+            : "trunks",
 
         ki: 100,
         health: 300,
@@ -61,19 +107,6 @@ function createFighter(id) {
 function updateFighters() {
 
     const players = window.getPlayers?.() || {};
-
-    // START SCREEN
-    if (!gameStarted) {
-
-        for (const id in players) {
-
-            if (players[id].button === "X") {
-                gameStarted = true;
-            }
-        }
-
-        return;
-    }
 
     for (const id in players) {
 
@@ -96,6 +129,21 @@ function updateFighters() {
 
         // HORIZONTAL MOVEMENT
         fighter.x += moveX * 8;
+
+        if (moveX !== 0) {
+
+            fighter.image =
+                fighter.character === "trunks"
+                    ? trunksRun
+                    : blackRun;
+        }
+        else {
+
+            fighter.image =
+                fighter.character === "trunks"
+                    ? trunksIdle
+                    : blackIdle;
+        }
 
         if (moveX > 0) fighter.facing = 1;
         if (moveX < 0) fighter.facing = -1;
@@ -186,6 +234,8 @@ function updateFighters() {
 
             fighter.ki -= 10;
 
+            cameraShake = 2;
+
             kiBlasts.push({
 
                 x: fighter.x + 25,
@@ -206,7 +256,12 @@ function updateFighters() {
 
 
         // DASH
-        if (player.button === "B") {
+        if (
+            player.button === "B" &&
+            !fighter.bPressed
+        ) {
+
+            fighter.bPressed = true;
 
             const dx = Number(player.directionX || 0);
             const dy = Number(player.directionY || 0);
@@ -214,7 +269,7 @@ function updateFighters() {
             // Neutral dash
             if (dx === 0 && dy === 0) {
 
-                fighter.x += 25;
+                fighter.x += fighter.facing * 25;
             }
 
             // Directional dash
@@ -223,6 +278,12 @@ function updateFighters() {
                 fighter.x += dx * 25;
                 fighter.y -= dy * 25;
             }
+
+            cameraShake = 4;
+        }
+        else if (player.button !== "B") {
+
+            fighter.bPressed = false;
         }
 
 
@@ -321,11 +382,29 @@ function renderStartScreen(context, canvas) {
 
 function renderFighters(context, canvas) {
 
-    // START SCREEN
-    if (!gameStarted) {
-
-        renderStartScreen(context, canvas);
+    if (!assetsReady) {
+        context.fillStyle = "white";
+        context.font = "32px Arial";
+        context.fillText("Loading...", 50, 50);
         return;
+    }
+    context.save();
+
+    const shakeX =
+        (Math.random() - 0.5) * cameraShake;
+
+    const shakeY =
+        (Math.random() - 0.5) * cameraShake;
+
+    context.translate(shakeX, shakeY);
+
+    if (cameraShake > 0) {
+
+        cameraShake *= 0.85;
+
+        if (cameraShake < 0.5) {
+            cameraShake = 0;
+        }
     }
 
     // STAGE BACKGROUND
@@ -344,14 +423,45 @@ function renderFighters(context, canvas) {
         if (fighter.charging) {
 
             context.shadowColor = "cyan";
-            context.shadowBlur = 25;
+            context.shadowBlur =
+                18 + Math.sin(Date.now() * 0.012) * 10;
         }
         else {
 
             context.shadowBlur = 0;
         }
 
-        fighter.render();
+        context.save();
+
+        if (fighter.facing === -1) {
+
+            context.translate(
+                fighter.x + fighter.image.width * fighter.scaleX,
+                fighter.y
+            );
+
+            context.scale(-1, 1);
+
+            context.drawImage(
+                fighter.image,
+                0,
+                0,
+                fighter.image.width * fighter.scaleX,
+                fighter.image.height * fighter.scaleY
+            );
+        }
+        else {
+
+            context.drawImage(
+                fighter.image,
+                fighter.x,
+                fighter.y,
+                fighter.image.width * fighter.scaleX,
+                fighter.image.height * fighter.scaleY
+            );
+        }
+
+        context.restore();
     }
 
     const fighterIds = Object.keys(fighters);
@@ -372,16 +482,69 @@ function renderFighters(context, canvas) {
         context.fillRect(40, 55, 320, 28);
 
         // HEALTH
-        context.fillStyle = "#32ff32";
-        context.fillRect(40, 55, fighter.health, 28);
+        const healthGradient =
+            context.createLinearGradient(
+                40,
+                55,
+                360,
+                55
+            );
+
+        healthGradient.addColorStop(0, "#00ff66");
+        healthGradient.addColorStop(1, "#00aa44");
+
+        context.fillStyle = healthGradient;
+
+        context.shadowColor = "#00ff66";
+        context.shadowBlur = 15;
+
+        context.fillRect(
+            40,
+            55,
+            fighter.health,
+            28
+        );
+
+        context.strokeStyle = "white";
+        context.lineWidth = 2;
+
+        context.strokeRect(
+            40,
+            55,
+            320,
+            28
+        );
 
         // KI BG
         context.fillStyle = "rgba(0,0,0,0.7)";
         context.fillRect(40, 92, 320, 18);
 
+        context.strokeStyle = "white";
+        context.lineWidth = 2;
+
+        context.strokeRect(
+            40,
+            92,
+            320,
+            18
+        );
+
         // KI
-        context.fillStyle = "#00d9ff";
-        context.fillRect(40, 92, fighter.ki * 3, 18);
+        const kiGradient =
+            context.createLinearGradient(
+                40,
+                92,
+                360,
+                92
+            );
+
+        kiGradient.addColorStop(0, "#00cfff");
+        kiGradient.addColorStop(1, "#0044ff");
+
+        context.fillStyle = kiGradient;
+
+        context.shadowColor = "#00cfff";
+        context.shadowBlur = 12;
     }
 
 // PLAYER 2
@@ -400,7 +563,7 @@ function renderFighters(context, canvas) {
             40
         );
 
-        // HEALTH BG
+// HEALTH BG
         context.fillStyle = "rgba(0,0,0,0.7)";
         context.fillRect(
             window.innerWidth - 360,
@@ -409,8 +572,23 @@ function renderFighters(context, canvas) {
             28
         );
 
-        // HEALTH
-        context.fillStyle = "#ff3232";
+// HEALTH GRADIENT
+        const healthGradient2 =
+            context.createLinearGradient(
+                window.innerWidth - 360,
+                55,
+                window.innerWidth - 40,
+                55
+            );
+
+        healthGradient2.addColorStop(0, "#ff4444");
+        healthGradient2.addColorStop(1, "#990000");
+
+        context.fillStyle = healthGradient2;
+
+        context.shadowColor = "#ff3333";
+        context.shadowBlur = 15;
+
         context.fillRect(
             window.innerWidth - 40 - fighter.health,
             55,
@@ -418,7 +596,18 @@ function renderFighters(context, canvas) {
             28
         );
 
-        // KI BG
+// HEALTH OUTLINE
+        context.strokeStyle = "white";
+        context.lineWidth = 2;
+
+        context.strokeRect(
+            window.innerWidth - 360,
+            55,
+            320,
+            28
+        );
+
+// KI BG
         context.fillStyle = "rgba(0,0,0,0.7)";
         context.fillRect(
             window.innerWidth - 360,
@@ -427,12 +616,38 @@ function renderFighters(context, canvas) {
             18
         );
 
-        // KI
-        context.fillStyle = "#00d9ff";
+// KI GRADIENT
+        const kiGradient2 =
+            context.createLinearGradient(
+                window.innerWidth - 360,
+                92,
+                window.innerWidth - 40,
+                92
+            );
+
+        kiGradient2.addColorStop(0, "#00cfff");
+        kiGradient2.addColorStop(1, "#0044ff");
+
+        context.fillStyle = kiGradient2;
+
+        context.shadowColor = "#00cfff";
+        context.shadowBlur = 12;
+
         context.fillRect(
             window.innerWidth - 40 - (fighter.ki * 3),
             92,
             fighter.ki * 3,
+            18
+        );
+
+// KI OUTLINE
+        context.strokeStyle = "white";
+        context.lineWidth = 2;
+
+        context.strokeRect(
+            window.innerWidth - 360,
+            92,
+            320,
             18
         );
     }
@@ -459,8 +674,9 @@ function renderFighters(context, canvas) {
 
         context.fill();
     }
-
+    context.restore();
 }
 
 window.updateFighters = updateFighters;
 window.renderFighters = renderFighters;
+window.renderStartScreen = renderStartScreen;
