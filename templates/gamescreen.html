@@ -53,7 +53,8 @@
         init,
         GameLoop,
         initKeys,
-        initPointer
+        initPointer,
+        Scene
     } = kontra;
 
     let { canvas, context } = init('gameCanvas');
@@ -64,9 +65,36 @@
     initKeys();
     initPointer();
 
-    GameLoop({
+    const menuScene = Scene({
+        id: "menu",
 
         update() {
+
+            const players = window.getPlayers?.() || {};
+
+            for (const id in players) {
+
+                if (players[id].button === "X") {
+
+                    menuScene.hidden = true;
+                    fightScene.hidden = false;
+                }
+            }
+        },
+
+        render() {
+
+            window.renderStartScreen?.(context, canvas);
+        }
+    });
+
+    const fightScene = Scene({
+        id: "fight",
+
+        hidden: true,
+
+        update() {
+
             window.updateFighters?.();
         },
 
@@ -75,6 +103,31 @@
             context.clearRect(0,0,canvas.width,canvas.height);
 
             window.renderFighters?.(context, canvas);
+        }
+    });
+
+    GameLoop({
+
+        update() {
+
+            if (!menuScene.hidden) {
+                menuScene.update();
+            }
+
+            if (!fightScene.hidden) {
+                fightScene.update();
+            }
+        },
+
+        render() {
+
+            if (!menuScene.hidden) {
+                menuScene.render();
+            }
+
+            if (!fightScene.hidden) {
+                fightScene.render();
+            }
         }
 
     }).start();

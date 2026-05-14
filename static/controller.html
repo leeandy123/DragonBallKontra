@@ -48,29 +48,107 @@
     }
 
     .gamecube-buttons {
+
       position: fixed;
+
       bottom: 30px;
       right: 30px;
-      width: 160px;
-      height: 160px;
+
+      width: 170px;
+      height: 250px;
+
       z-index: 2;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1fr 1fr;
-      gap: 10px;
     }
 
-    .btn-circle {
+    /* ALL BUTTONS SAME SIZE */
+
+    .btn-circle,
+    #blockButton,
+    #meleeButton {
+
+      position: absolute;
+
       width: 70px;
       height: 70px;
+
       border-radius: 50%;
       border: none;
-      font-size: 22px;
+
+      font-size: 24px;
+      font-weight: bold;
+
       display: flex;
       align-items: center;
       justify-content: center;
+
       color: white;
-      contain: strict; /* Performance boost */
+
+      box-shadow:
+              0 5px 12px rgba(0,0,0,0.4);
+
+      transition:
+              transform 0.08s ease,
+              opacity 0.08s ease;
+    }
+
+    .btn-circle:active,
+    #blockButton:active,
+    #meleeButton:active {
+
+      transform: scale(0.92);
+    }
+
+    /* TOP ROW */
+
+    #blockButton {
+
+      background-color: #7a7a7a;
+
+      left: 0;
+      top: 0;
+    }
+
+    #meleeButton {
+
+      background-color: #a020f0;
+
+      right: 0;
+      top: 0;
+    }
+
+    /* ORIGINAL GAMECUBE LAYOUT */
+
+    #button-y {
+
+      background-color: #ffc107;
+      color: black;
+
+      left: 0;
+      top: 90px;
+    }
+
+    #button-x {
+
+      background-color: #0d6efd;
+
+      right: 0;
+      top: 90px;
+    }
+
+    #button-b {
+
+      background-color: #dc3545;
+
+      left: 0;
+      top: 180px;
+    }
+
+    #button-a {
+
+      background-color: #198754;
+
+      right: 0;
+      top: 180px;
     }
 
     #button-a { background-color: #198754; grid-area: 2 / 2; }
@@ -85,6 +163,8 @@
 <div id="joystick-zone"></div>
 
 <div class="gamecube-buttons">
+  <button id="blockButton">F</button>
+  <button id="meleeButton">M</button>
   <button id="button-y" class="btn-circle">Y</button>
   <button id="button-x" class="btn-circle">X</button>
   <button id="button-b" class="btn-circle">B</button>
@@ -169,7 +249,14 @@
   });
 
   // Button Logic
-  ["button-a", "button-b", "button-x", "button-y"].forEach((id) => {
+  [
+    "button-a",
+    "button-b",
+    "button-x",
+    "button-y",
+    "blockButton",
+    "meleeButton"
+  ].forEach((id) => {
     const btn = document.getElementById(id);
     if (btn) {
       // Example for Buttons
