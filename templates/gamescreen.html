@@ -80,6 +80,9 @@
     window.player1Character = "trunks";
     window.player2Character = "black";
 
+    // SFX gate: fighter.js checks this before playing any sound
+    window.fightSceneActive = false;
+
     const menuScene = Scene({
         id: "menu",
 
@@ -259,6 +262,7 @@
         hidden: true,
 
         update() {
+            window.fightSceneActive = true;
             window.updateFighters?.();
         },
 
@@ -270,8 +274,14 @@
 
     GameLoop({
         update() {
-            if (!menuScene.hidden) menuScene.update();
-            if (!characterSelectScene.hidden) characterSelectScene.update();
+            if (!menuScene.hidden) {
+                window.fightSceneActive = false;
+                menuScene.update();
+            }
+            if (!characterSelectScene.hidden) {
+                window.fightSceneActive = false;
+                characterSelectScene.update();
+            }
             if (!fightScene.hidden) fightScene.update();
         },
 

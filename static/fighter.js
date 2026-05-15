@@ -9,6 +9,52 @@ const {
     imageAssets
 } = kontra;
 
+// ─── SFX SYSTEM ───────────────────────────────────────────────
+// Sounds only play when the fight scene is active (window.fightSceneActive)
+const sfx = {
+    kiBlast:  new Audio("/static/sfx/aura-burst-sound-effect-dbz.mp3"),
+    teleport: new Audio("/static/sfx/dbz-teleport-sound-thing-made-with-Voicemod.mp3"),
+    powerUp:  new Audio("/static/sfx/dragon-ball-power-up-sound-effect-made-with-Voicemod.mp3"),
+    punch:    new Audio("/static/sfx/dragon-ball-z-punch-sound-effect-made-with-Voicemod.mp3"),
+    jump:     new Audio("/static/sfx/dbz-jump-made-with-Voicemod.mp3"),
+};
+
+sfx.kiBlast.volume  = 0.6;
+sfx.teleport.volume = 0.6;
+sfx.powerUp.volume  = 0.5;
+sfx.powerUp.loop    = true;   // loops while X is held
+sfx.punch.volume    = 0.7;
+sfx.jump.volume     = 0.6;
+
+// Per-player power-up state so we can stop the loop when X is released
+const powerUpPlaying = {};
+
+function playSFX(sound) {
+    if (!window.fightSceneActive) return;
+    sound.currentTime = 0;
+    sound.play().catch(() => {});
+}
+
+function startPowerUpSFX(playerId) {
+    if (!window.fightSceneActive) return;
+    if (powerUpPlaying[playerId]) return;
+    powerUpPlaying[playerId] = true;
+    sfx.powerUp.currentTime = 0;
+    sfx.powerUp.play().catch(() => {});
+}
+
+function stopPowerUpSFX(playerId) {
+    if (!powerUpPlaying[playerId]) return;
+    powerUpPlaying[playerId] = false;
+    // Only pause if no other player is still charging
+    const anyCharging = Object.values(powerUpPlaying).some(Boolean);
+    if (!anyCharging) {
+        sfx.powerUp.pause();
+        sfx.powerUp.currentTime = 0;
+    }
+}
+// ──────────────────────────────────────────────────────────────
+
 let startImage;
 let stageImage;
 
@@ -294,6 +340,8 @@ function updateFighters() {
 
                 fighter.canDoubleJump = true;
                 fighter.jumpTimer = 20;
+
+                playSFX(sfx.jump);
             }
 
             // DOUBLE JUMP TO FLY
@@ -324,6 +372,10 @@ function updateFighters() {
             if (fighter.ki > 100) {
                 fighter.ki = 100;
             }
+
+            startPowerUpSFX(id);
+        } else {
+            stopPowerUpSFX(id);
         }
 
         // KI BLAST
@@ -341,6 +393,8 @@ function updateFighters() {
             fighter.ki -= 10;
 
             cameraShake = 2;
+
+            playSFX(sfx.kiBlast);
 
             kiBlasts.push({
 
@@ -391,6 +445,8 @@ function updateFighters() {
             fighter.heavyAttacking = false;
 
             cameraShake = 5;
+
+            playSFX(sfx.punch);
         }
 
         // HEAVY ATTACK
@@ -442,6 +498,8 @@ function updateFighters() {
             }
 
             cameraShake = 4
+
+            playSFX(sfx.teleport);
 
             // Neutral dash
             if (dx === 0 && dy === 0) {
