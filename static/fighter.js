@@ -58,11 +58,11 @@ load(
 });
 function createFighter(id) {
 
-    const fighterCount = Object.keys(fighters).length;
-
-    const isPlayer2 = fighterCount === 1;
+    const isPlayer2 = id === "2";
 
     fighters[id] = Sprite({
+
+        id,
 
         blocking: false,
 
@@ -80,26 +80,30 @@ function createFighter(id) {
 
         hitConnected: false,
 
-
         scaleX: 3,
         scaleY: 3,
 
+        // FIXED SPAWNS
         x: isPlayer2
-            ? window.innerWidth - 250
-            : 200,
+            ? window.gameCanvas.width * 0.75
+            : window.gameCanvas.width * 0.25,
 
-        y: 300,
+        y: window.gameCanvas.height - 320,
 
-        image: isPlayer2
-            ? blackIdle
-            : trunksIdle,
+        image:
+            (
+                isPlayer2
+                    ? window.player2Character
+                    : window.player1Character
+            ) === "black"
+                ? blackIdle
+                : trunksIdle,
 
         dx: 0,
         dy: 0,
 
         grounded: true,
         flying: false,
-        bPressed: false,
 
         jumpTimer: 0,
         canDoubleJump: false,
@@ -109,8 +113,8 @@ function createFighter(id) {
         facing: isPlayer2 ? -1 : 1,
 
         character: isPlayer2
-            ? "black"
-            : "trunks",
+            ? window.player2Character
+            : window.player1Character,
 
         ki: 100,
         health: 320,
@@ -118,6 +122,7 @@ function createFighter(id) {
         charging: false,
 
         aPressed: false,
+        bPressed: false,
         yPressed: false
     });
 }
@@ -599,7 +604,7 @@ function renderFighters(context, canvas) {
 
         context.globalAlpha = 0.85;
 
-        context.fillStyle = "white";
+        context.fillStyle = "black";
         context.font = "bold 28px Arial";
         context.fillText("PLAYER 1", 40, 40);
 
@@ -707,7 +712,7 @@ function renderFighters(context, canvas) {
 
         context.globalAlpha = 0.85;
 
-        context.fillStyle = "white";
+        context.fillStyle = "black";
         context.font = "bold 28px Arial";
 
         context.fillText(

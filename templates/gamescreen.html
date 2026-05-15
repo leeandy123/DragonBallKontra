@@ -56,6 +56,21 @@
 
     let { canvas, context } = init("gameCanvas");
 
+    window.gameCanvas = canvas;
+
+    function resizeCanvas() {
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    resizeCanvas();
+
+    window.addEventListener(
+        "resize",
+        resizeCanvas
+    );
+
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
@@ -69,18 +84,34 @@
         id: "menu",
 
         update() {
+
             const players = window.getPlayers?.() || {};
 
             for (const id in players) {
-                if (players[id].button === "X") {
+
+                const player = players[id];
+
+                if (
+                    player.button === "X" &&
+                    player.pressed === true
+                ) {
+
                     menuScene.hidden = true;
+
                     characterSelectScene.hidden = false;
+
+                    player.button = null;
+                    player.pressed = false;
                 }
             }
         },
 
         render() {
-            window.renderStartScreen?.(context, canvas);
+
+            window.renderStartScreen?.(
+                context,
+                canvas
+            );
         }
     });
 
@@ -89,23 +120,34 @@
         hidden: true,
 
         update() {
+
             const players = window.getPlayers?.() || {};
 
-            for (const id in players) {
-                const player = players[id];
+            const player1 = players["1"];
 
-                if (player.directionX < -0.5) {
-                    window.player1Character = "trunks";
-                }
+            if (!player1) return;
 
-                if (player.directionX > 0.5) {
-                    window.player1Character = "black";
-                }
+            if (player1.directionX < -0.5) {
 
-                if (player.button === "A") {
-                    characterSelectScene.hidden = true;
-                    fightScene.hidden = false;
-                }
+                window.player1Character = "trunks";
+            }
+
+            if (player1.directionX > 0.5) {
+
+                window.player1Character = "black";
+            }
+
+            if (
+                player1.button === "A" &&
+                player1.pressed === true
+            ) {
+
+                characterSelectScene.hidden = true;
+
+                fightScene.hidden = false;
+
+                player1.button = null;
+                player1.pressed = false;
             }
         },
 
