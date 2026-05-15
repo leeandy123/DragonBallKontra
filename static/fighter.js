@@ -12,11 +12,10 @@ const {
 let startImage;
 let stageImage;
 
-let trunksIdle;
-let trunksRun;
-
-let blackIdle;
-let blackRun;
+const characterSprites = {
+    trunks: {},
+    black: {}
+};
 
 let cameraShake = 0;
 
@@ -28,9 +27,27 @@ load(
 
     "/static/sprites/trunks/idle.png",
     "/static/sprites/trunks/run.png",
+    "/static/sprites/trunks/punch.png",
+    "/static/sprites/trunks/kick.png",
+    "/static/sprites/trunks/heavy.png",
+    "/static/sprites/trunks/block.png",
+    "/static/sprites/trunks/fly.png",
+    "/static/sprites/trunks/stun.png",
+    "/static/sprites/trunks/kiblast.png",
+    "/static/sprites/trunks/dash.png",
+    "/static/sprites/trunks/jump.png",
 
     "/static/sprites/gokublack/idle.png",
     "/static/sprites/gokublack/run.png",
+    "/static/sprites/gokublack/punch.png",
+    "/static/sprites/gokublack/kick.png",
+    "/static/sprites/gokublack/heavy.png",
+    "/static/sprites/gokublack/block.png",
+    "/static/sprites/gokublack/fly.png",
+    "/static/sprites/gokublack/stun.png",
+    "/static/sprites/gokublack/kiblast.png",
+    "/static/sprites/gokublack/dash.png",
+    "/static/sprites/gokublack/jump.png",
 
     "/static/sprites/trunks/start.png",
     "/static/sprites/gokublack/start.png",
@@ -42,17 +59,33 @@ load(
     stageImage =
         imageAssets["/static/stage.jpg"];
 
-    trunksIdle =
-        imageAssets["/static/sprites/trunks/idle.png"];
+    characterSprites.trunks = {
+        idle: imageAssets["/static/sprites/trunks/idle.png"],
+        run: imageAssets["/static/sprites/trunks/run.png"],
+        punch: imageAssets["/static/sprites/trunks/punch.png"],
+        kick: imageAssets["/static/sprites/trunks/kick.png"],
+        heavy: imageAssets["/static/sprites/trunks/heavy.png"],
+        block: imageAssets["/static/sprites/trunks/block.png"],
+        fly: imageAssets["/static/sprites/trunks/fly.png"],
+        stun: imageAssets["/static/sprites/trunks/stun.png"],
+        kiblast: imageAssets["/static/sprites/trunks/kiblast.png"],
+        dash: imageAssets["/static/sprites/trunks/dash.png"],
+        jump: imageAssets["/static/sprites/trunks/jump.png"],
+    };
 
-    trunksRun =
-        imageAssets["/static/sprites/trunks/run.png"];
-
-    blackIdle =
-        imageAssets["/static/sprites/gokublack/idle.png"];
-
-    blackRun =
-        imageAssets["/static/sprites/gokublack/run.png"];
+    characterSprites.black = {
+        idle: imageAssets["/static/sprites/gokublack/idle.png"],
+        run: imageAssets["/static/sprites/gokublack/run.png"],
+        punch: imageAssets["/static/sprites/gokublack/punch.png"],
+        kick: imageAssets["/static/sprites/gokublack/kick.png"],
+        heavy: imageAssets["/static/sprites/gokublack/heavy.png"],
+        block: imageAssets["/static/sprites/gokublack/block.png"],
+        fly: imageAssets["/static/sprites/gokublack/fly.png"],
+        stun: imageAssets["/static/sprites/gokublack/stun.png"],
+        kiblast: imageAssets["/static/sprites/gokublack/kiblast.png"],
+        dash: imageAssets["/static/sprites/gokublack/dash.png"],
+        jump: imageAssets["/static/sprites/gokublack/jump.png"],
+    };
 
     assetsReady = true;
 });
@@ -63,6 +96,10 @@ function createFighter(id) {
     fighters[id] = Sprite({
 
         id,
+
+        state: "idle",
+        stateTimer: 0,
+        attackCooldown: 0,
 
         blocking: false,
 
@@ -91,13 +128,11 @@ function createFighter(id) {
         y: window.gameCanvas.height - 320,
 
         image:
-            (
-                isPlayer2
-                    ? window.player2Character
-                    : window.player1Character
-            ) === "black"
-                ? blackIdle
-                : trunksIdle,
+        characterSprites[
+            isPlayer2
+                ? window.player2Character
+                : window.player1Character
+            ]?.idle,
 
         dx: 0,
         dy: 0,
@@ -129,6 +164,8 @@ function createFighter(id) {
 
 function updateFighters() {
 
+
+
     const players = window.getPlayers?.() || {};
 
     for (const id in players) {
@@ -141,6 +178,37 @@ function updateFighters() {
 
         const fighter = fighters[id];
 
+        if (fighter.stateTimer <= 0) {
+
+            fighter.attacking = false;
+            fighter.heavyAttacking = false;
+
+            if (fighter.flying) {
+
+                fighter.state = "fly";
+            }
+            else if (!fighter.grounded) {
+
+                fighter.state = "jump";
+            }
+            else if (fighter.dx !== 0) {
+
+                fighter.state = "run";
+            }
+            else {
+
+                fighter.state = "idle";
+            }
+        }
+
+        if (fighter.attackCooldown > 0) {
+            fighter.attackCooldown--;
+        }
+
+        if (fighter.stateTimer > 0) {
+            fighter.stateTimer--;
+        }
+
         const leftBoundary = 0;
         const rightBoundary = window.innerWidth - fighter.width;
 
@@ -151,21 +219,30 @@ function updateFighters() {
         const moveY = Number(player.directionY || 0);
 
         // HORIZONTAL MOVEMENT
-        fighter.x += moveX * 8;
 
-        if (moveX !== 0) {
+        fighter.dx = moveX * 8;
 
-            fighter.image =
-                fighter.character === "trunks"
-                    ? trunksRun
-                    : blackRun;
+        fighter.x += fighter.dx;
+
+        if (
+            fighter.grounded &&
+            moveX !== 0 &&
+            !fighter.attacking &&
+            !fighter.blocking &&
+            !fighter.stunned
+        ) {
+
+            fighter.state = "run";
         }
-        else {
+        else if (
+            fighter.grounded &&
+            !fighter.attacking &&
+            !fighter.blocking &&
+            !fighter.stunned &&
+            !fighter.flying
+        ) {
 
-            fighter.image =
-                fighter.character === "trunks"
-                    ? trunksIdle
-                    : blackIdle;
+            fighter.state = "idle";
         }
 
         if (moveX > 0) fighter.facing = 1;
@@ -209,6 +286,9 @@ function updateFighters() {
             else if (fighter.grounded) {
 
                 fighter.dy = -15;
+
+                fighter.state = "jump";
+                fighter.stateTimer = 12;
 
                 fighter.grounded = false;
 
@@ -255,6 +335,9 @@ function updateFighters() {
 
             fighter.yPressed = true;
 
+            fighter.state = "kiblast";
+            fighter.stateTimer = 10;
+
             fighter.ki -= 10;
 
             cameraShake = 2;
@@ -268,7 +351,12 @@ function updateFighters() {
 
                 life: 120,
 
-                radius: 10
+                radius: 10,
+
+                image:
+                characterSprites[
+                    fighter.character
+                    ].kiblast
             });
         }
         else if (player.button !== "Y") {
@@ -280,41 +368,50 @@ function updateFighters() {
         fighter.blocking =
             player.button === "F";
 
-        // MELEE HOLD
-        if (player.button === "M") {
-
-            fighter.meleeHeldFrames++;
-        }
-
-// RELEASE ATTACK
-        else if (
-            fighter.meleeHeldFrames > 0 &&
+        // MELEE ATTACK
+        if (
+            player.button === "M" &&
+            fighter.attackCooldown <= 0 &&
             !fighter.attacking
         ) {
 
             fighter.attacking = true;
+            fighter.hitConnected = false;
 
-            // HEAVY
-            if (fighter.meleeHeldFrames > 20) {
+            fighter.attackCooldown = 15;
 
-                fighter.heavyAttacking = true;
+            fighter.stateTimer = 12;
 
-                fighter.attackTimer = 28;
+            // RANDOM LIGHT ATTACK
+            fighter.state =
+                Math.random() < 0.5
+                    ? "punch"
+                    : "kick";
 
-                cameraShake = 12;
-            }
+            fighter.heavyAttacking = false;
 
-            // LIGHT
-            else {
+            cameraShake = 5;
+        }
 
-                fighter.heavyAttacking = false;
+        // HEAVY ATTACK
+        if (
+            player.button === "H" &&
+            fighter.attackCooldown <= 0 &&
+            !fighter.attacking
+        ) {
 
-                fighter.attackTimer = 12;
+            fighter.attacking = true;
+            fighter.hitConnected = false;
 
-                cameraShake = 5;
-            }
+            fighter.heavyAttacking = true;
 
-            fighter.meleeHeldFrames = 0;
+            fighter.attackCooldown = 30;
+
+            fighter.stateTimer = 24;
+
+            fighter.state = "heavy";
+
+            cameraShake = 12;
         }
 
         // DASH
@@ -325,8 +422,26 @@ function updateFighters() {
 
             fighter.bPressed = true;
 
+            fighter.state = "dash";
+            fighter.stateTimer = 10;
+
             const dx = Number(player.directionX || 0);
             const dy = Number(player.directionY || 0);
+
+            // Neutral dash
+            if (dx === 0 && dy === 0) {
+
+                fighter.x += fighter.facing * 25;
+            }
+
+            // Directional dash
+            else {
+
+                fighter.x += dx * 25;
+                fighter.y -= dy * 25;
+            }
+
+            cameraShake = 4
 
             // Neutral dash
             if (dx === 0 && dy === 0) {
@@ -417,6 +532,7 @@ function updateFighters() {
         if (fighter.y < topBoundary) {
             fighter.y = topBoundary;
         }
+        updateFighterSprite(fighter);
         for (const otherId in fighters) {
 
             if (otherId === id) continue;
@@ -425,6 +541,7 @@ function updateFighters() {
 
             const distance =
                 Math.abs(fighter.x - enemy.x);
+
 
             if (
                 fighter.attacking &&
@@ -485,6 +602,7 @@ function updateFighters() {
 
                 continue;
             }
+
         }
     }
 }
@@ -818,22 +936,90 @@ function renderFighters(context, canvas) {
 // KI BLASTS
     for (const blast of kiBlasts) {
 
-        context.shadowColor = "yellow";
+        context.shadowColor = "cyan";
         context.shadowBlur = 20;
 
-        context.beginPath();
-
-        context.arc(
+        context.drawImage(
+            blast.image,
             blast.x,
             blast.y,
-            blast.radius,
-            0,
-            Math.PI * 2
+            blast.image.width * 2,
+            blast.image.height * 2
         );
-
-        context.fill();
     }
+
     context.restore();
+}
+
+function updateFighterSprite(fighter) {
+
+    const sprites =
+        characterSprites[fighter.character];
+
+    if (!sprites) return;
+
+    // STUN
+    if (fighter.stunned) {
+
+        fighter.image = sprites.stun;
+        return;
+    }
+
+    // BLOCK
+    if (fighter.blocking) {
+
+        fighter.image = sprites.block;
+        return;
+    }
+
+    // HEAVY
+    if (fighter.state === "heavy") {
+
+        fighter.image = sprites.heavy;
+        return;
+    }
+
+    // LIGHT ATTACKS
+    if (fighter.state === "punch") {
+
+        fighter.image = sprites.punch;
+        return;
+    }
+
+    if (fighter.state === "kick") {
+
+        fighter.image = sprites.kick;
+        return;
+    }
+
+    if (fighter.state === "jump") {
+
+        fighter.image = sprites.jump;
+        return;
+    }
+
+    if (fighter.state === "dash") {
+
+        fighter.image = sprites.dash;
+        return;
+    }
+
+    // FLY
+    if (fighter.flying) {
+
+        fighter.image = sprites.fly;
+        return;
+    }
+
+    // RUN
+    if (fighter.dx !== 0) {
+
+        fighter.image = sprites.run;
+        return;
+    }
+
+    // DEFAULT
+    fighter.image = sprites.idle;
 }
 
 window.updateFighters = updateFighters;

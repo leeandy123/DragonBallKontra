@@ -53,7 +53,15 @@ class ConnectionManager:
             print(f"SPECTATOR: UUID {player_id} connected (No slot available)")
 
         # Send a private message to the phone telling it which slot it got
-        await websocket.send_text(f'{{"type": "assign", "slot": {assigned_slot}}}')
+        role = (
+            "player"
+            if assigned_slot > 0
+            else "spectator"
+        )
+
+        await websocket.send_text(
+            f'{{"type":"assign","slot":{assigned_slot},"role":"{role}"}}'
+        )
 
         # Notify everyone that a player joined
         await self.broadcast(
